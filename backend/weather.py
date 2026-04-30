@@ -85,8 +85,9 @@ def calculate_risk(temp: float, humidity: int, uv: float, aqi: int):
 # 2. SMART COMMUTE ADVISOR LOGIC
 # ==========================================
 
-def find_best_commute(target_time: int, weather_data, aqi_data):
+def find_best_commute(target_time: int, target_day: int, weather_data, aqi_data):
     # Check 1 hour before, the exact hour, and 1 hour after
+    offset = target_day * 24
     check_hours = [
         max(0, target_time - 1),
         target_time,
@@ -99,10 +100,11 @@ def find_best_commute(target_time: int, weather_data, aqi_data):
     options = []
     
     for i in check_hours:
-        temp = weather_data["hourly"]["temperature_2m"][i]
-        humidity = weather_data["hourly"]["relative_humidity_2m"][i]
-        uv = weather_data["hourly"]["uv_index"][i]
-        aqi = aqi_data["hourly"]["european_aqi"][i]
+        idx = i + offset
+        temp = weather_data["hourly"]["temperature_2m"][idx]
+        humidity = weather_data["hourly"]["relative_humidity_2m"][idx]
+        uv = weather_data["hourly"]["uv_index"][idx]
+        aqi = aqi_data["hourly"]["european_aqi"][idx]
         if aqi is None: aqi = 1
             
         result = calculate_risk(temp, humidity, uv, aqi)
@@ -115,8 +117,8 @@ def find_best_commute(target_time: int, weather_data, aqi_data):
         
         score = severity + (temp / 100.0)
         
-        wind = weather_data.get("hourly", {}).get("wind_speed_10m", [0]*24)[i]
-        precip = weather_data.get("hourly", {}).get("precipitation_probability", [0]*24)[i]
+        wind = weather_data.get("hourly", {}).get("wind_speed_10m", [0]*48)[idx]
+        precip = weather_data.get("hourly", {}).get("precipitation_probability", [0]*48)[idx]
 
         options.append({
             "hour": i,
@@ -232,7 +234,7 @@ async def fetch_weather(lat: float, lon: float) -> dict:
             f"latitude={lat}&longitude={lon}"
             f"&hourly=temperature_2m,relative_humidity_2m,uv_index,surface_pressure,precipitation_probability,weathercode,wind_speed_10m,dewpoint_2m,visibility,apparent_temperature"
             f"&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset"
-            f"&forecast_days=1&timezone=auto"
+            f"&forecast_days=2&timezone=auto"
         )
         resp = await client.get(weather_url)
         return resp.json()
@@ -245,7 +247,7 @@ async def fetch_air_quality(lat: float, lon: float) -> dict:
             f"https://air-quality-api.open-meteo.com/v1/air-quality?"
             f"latitude={lat}&longitude={lon}"
             f"&hourly=european_aqi"
-            f"&forecast_days=1&timezone=auto"
+            f"&forecast_days=2&timezone=auto"
         )
         resp = await client.get(aqi_url)
         return resp.json()

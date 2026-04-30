@@ -176,7 +176,20 @@ async def get_current_weather(lat: float, lon: float):
             "moon_illumination": moon["illumination"],
         },
         "skincare": skincare_tips,
-        "forecast": weather_data["hourly"]["temperature_2m"][:24]
+        "forecast": [
+            {
+                "temp": t,
+                "uv": u,
+                "humidity": h,
+                "precip": p
+            }
+            for t, u, h, p in zip(
+                weather_data["hourly"]["temperature_2m"][:48],
+                weather_data["hourly"]["uv_index"][:48],
+                weather_data["hourly"]["relative_humidity_2m"][:48],
+                weather_data["hourly"]["precipitation_probability"][:48]
+            )
+        ]
     }
 
 
@@ -184,13 +197,13 @@ async def get_current_weather(lat: float, lon: float):
 # COMMUTE PLANNER
 # ==========================================
 @app.get("/plan-trip")
-async def plan_trip(lat: float, lon: float, city_name: str, travel_time: int):
+async def plan_trip(lat: float, lon: float, city_name: str, travel_time: int, travel_day: int = 0):
     # Fetch external data
     weather_data = await fetch_weather(lat, lon)
     aqi_data = await fetch_air_quality(lat, lon)
 
     # Analyze commute
-    best, target, opts = find_best_commute(travel_time, weather_data, aqi_data)
+    best, target, opts = find_best_commute(travel_time, travel_day, weather_data, aqi_data)
     
     # Generate advice messages and skincare tips in a single optimized call
     analysis = await get_full_commute_analysis(
@@ -199,9 +212,9 @@ async def plan_trip(lat: float, lon: float, city_name: str, travel_time: int):
         hour=travel_time,
         weather={
             "temp": best["temp"],
-            "humidity": weather_data["hourly"]["relative_humidity_2m"][best["hour"]],
-            "uv": weather_data["hourly"]["uv_index"][best["hour"]],
-            "aqi": aqi_data["hourly"]["european_aqi"][best["hour"]] or 1,
+            "humidity": best["humidity"],
+            "uv": best["uv"],
+            "aqi": best["aqi"],
         }
     )
 

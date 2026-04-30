@@ -1,15 +1,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
+  /* DARK MODE (DEFAULT) */
   --bg-primary: #0b1120;
   --bg-secondary: #111827;
-  --bg-card: rgba(17, 25, 45, 0.85);
-  --bg-card-hover: rgba(25, 35, 60, 0.95);
+  --bg-card: rgba(17, 25, 45, 0.7);
+  --bg-card-hover: rgba(25, 35, 60, 0.8);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-border-hover: rgba(255, 255, 255, 0.15);
   --text-main: #e8edf5;
-  --text-muted: #7b8a9e;
-  --text-dim: #4a5568;
+  --text-muted: #9babbf;
+  --text-dim: #64748b;
+  --sidebar-bg: rgba(0, 0, 0, 0.4);
+  --sidebar-item-active: rgba(59, 130, 246, 0.2);
+  
   --accent-blue: #3b82f6;
   --accent-cyan: #22d3ee;
   --accent-purple: #a78bfa;
@@ -21,17 +25,47 @@
   --danger: #f87171;
   --caution: #fbbf24;
   --safe: #34d399;
+  --risk-low-bg: rgba(52, 211, 153, 0.08);
+  --risk-med-bg: rgba(251, 191, 36, 0.12);
+  --risk-high-bg: rgba(248, 113, 113, 0.15);
   --sidebar-width: 260px;
   --sidebar-collapsed: 72px;
+}
+
+[data-theme='light'] {
+  /* LIGHT MODE */
+  --bg-primary: #fcfcfc;
+  --bg-secondary: #ffffff;
+  --bg-card: rgba(255, 255, 255, 0.85);
+  --bg-card-hover: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-border-hover: rgba(0, 0, 0, 0.12);
+  --text-main: #1a1a1a;
+  --text-muted: #4a4a4a;
+  --text-dim: #717171;
+  --sidebar-bg: rgba(255, 255, 255, 0.95);
+  --sidebar-item-active: rgba(0, 0, 0, 0.05);
+  
+  --accent-blue: #2563eb;
+  --accent-cyan: #0891b2;
+  --accent-purple: #7c3aed;
+  --accent-pink: #db2777;
+  --accent-orange: #ea580c;
+  --accent-yellow: #d97706;
+  --accent-green: #16a34a;
+  --accent-red: #dc2626;
+  --danger: #dc2626;
+  --caution: #d97706;
+  --safe: #16a34a;
+  --risk-low-bg: rgba(22, 163, 74, 0.08);
+  --risk-med-bg: rgba(217, 119, 6, 0.1);
+  --risk-high-bg: rgba(220, 38, 38, 0.12);
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 html {
@@ -44,6 +78,9 @@ body {
   background: var(--bg-primary);
   color: var(--text-main);
   overflow-x: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
