@@ -326,14 +326,28 @@ function App() {
     if (initRef.current) return;
     initRef.current = true;
 
-    // PRELOAD LONDON IMMEDIATELY
-    fetchCurrentWeatherForCity(51.5074, -0.1278, "London", "UK", true);
+    // We no longer fetch REAL London weather here to avoid the "triple jump".
+    // The app will stay on the hardcoded 15°C placeholder until Geolocation finds your real city.
 
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          // OVERWRITE WITH ACTUAL LOCATION ONCE GRANTED
-          fetchCurrentWeatherForCity(position.coords.latitude, position.coords.longitude, "Current Location", "", true);
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          try {
+            // Ask the backend to turn coordinates into a real city name
+            const geoResp = await axios.get('http://localhost:8000/reverse-geocode', { 
+              params: { lat: latitude, lon: longitude } 
+            });
+            const cityName = geoResp.data.name || "Current Location";
+            const country = geoResp.data.country || "";
+            
+            // Now update the weather with the actual name
+            fetchCurrentWeatherForCity(latitude, longitude, cityName, country, true);
+          } catch (e) {
+            // Fallback if reverse geocoding fails
+            fetchCurrentWeatherForCity(latitude, longitude, "Current Location", "", true);
+          }
         },
         (err) => {
           console.log("Geolocation denied or failed", err);
@@ -342,6 +356,14 @@ function App() {
       );
     }
   }, []);
+
+  // Clear stale commute data whenever the city changes
+  useEffect(() => {
+    if (selectedCity) {
+      setData(null);
+      setError(null);
+    }
+  }, [selectedCity]);
 
   // STEP 1: Search for city matches
   const searchCity = async (e) => {
@@ -386,11 +408,8 @@ function App() {
     setPlanSearchMode(false)
     setSkincareSearchMode(false)
     
-    if (appMode === 'home' || appMode === 'skincare') {
-      fetchCurrentWeatherForCity(city.latitude, city.longitude, city.name, city.country);
-    } else {
-      setSelectedCity(city)
-    }
+    // Always fetch weather and update selected city globally to keep tabs in sync
+    fetchCurrentWeatherForCity(city.latitude, city.longitude, city.name, city.country);
   }
 
   const clearCity = () => {

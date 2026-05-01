@@ -2,10 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from weather import (
-    fetch_weather,
-    fetch_air_quality,
+    get_cached_weather,
+    get_cached_air_quality,
     search_city_results,
     find_best_commute,
+    reverse_geocode,
 )
 import asyncio
 import math
@@ -13,28 +14,6 @@ from datetime import datetime
 from ai_assistant import get_full_commute_analysis, get_ai_skincare_tips, get_api_usage
 
 
-def get_moon_phase(year: int, month: int, day: int) -> dict:
-    """Calculate the moon phase for a given date using Conway's algorithm.
-    Returns a dict with phase name, illumination percentage, and icon."""
-    # Normalize to a known new-moon epoch (Jan 6, 2000)
-    from datetime import date as _date
-    diff = (_date(year, month, day) - _date(2000, 1, 6)).days
-    lunation = 29.53058867
-    phase_day = diff % lunation
-    phase_pct = phase_day / lunation  # 0.0 to 1.0 through the cycle
-    illumination = round((1 - math.cos(2 * math.pi * phase_pct)) / 2 * 100)
-
-    if phase_pct < 0.0339:    name, icon = "New Moon", "🌑"
-    elif phase_pct < 0.2161:  name, icon = "Waxing Crescent", "🌒"
-    elif phase_pct < 0.2839:  name, icon = "First Quarter", "🌓"
-    elif phase_pct < 0.4661:  name, icon = "Waxing Gibbous", "🌔"
-    elif phase_pct < 0.5339:  name, icon = "Full Moon", "🌕"
-    elif phase_pct < 0.7161:  name, icon = "Waning Gibbous", "🌖"
-    elif phase_pct < 0.7839:  name, icon = "Last Quarter", "🌗"
-    elif phase_pct < 0.9661:  name, icon = "Waning Crescent", "🌘"
-    else:                     name, icon = "New Moon", "🌑"
-
-    return {"name": name, "icon": icon, "illumination": illumination}
 
 app = FastAPI()
 
@@ -48,14 +27,6 @@ app.add_middleware(
 )
 
 
-# ==========================================
-# CITY SEARCH
-# ==========================================
-@app.get("/search-city")
-async def search_city(name: str):
-    """Return up to 5 geocoding matches so the user can pick the right city."""
-    matches = await search_city_results(name)
-    return {"results": matches}
 
 # ==========================================
 # API STATUS
@@ -72,8 +43,8 @@ async def api_status():
 @app.get("/current-weather")
 async def get_current_weather(lat: float, lon: float):
     weather_data, aqi_data = await asyncio.gather(
-        fetch_weather(lat, lon),
-        fetch_air_quality(lat, lon)
+        get_cached_weather(lat, lon), 
+        get_cached_air_quality(lat, lon) 
     )
 
     # Use current system hour to approximate current conditions from the hourly array
@@ -112,18 +83,18 @@ async def get_current_weather(lat: float, lon: float):
     }
     
     # Get lists with defaults
-    h_data = weather_data.get("hourly", {})
-    temp_list = h_data.get("temperature_2m", [0]*24)
-    hum_list = h_data.get("relative_humidity_2m", [0]*24)
-    uv_list = h_data.get("uv_index", [0]*24)
-    press_list = h_data.get("surface_pressure", [0]*24)
-    precip_list = h_data.get("precipitation_probability", [0]*24)
-    wind_list = h_data.get("wind_speed_10m", [0]*24)
-    code_list = h_data.get("weathercode", [0]*24)
-    dewpoint_list = h_data.get("dewpoint_2m", [0]*24)
-    visibility_list = h_data.get("visibility", [0]*24)
-    feels_list = h_data.get("apparent_temperature", [0]*24)
-    aqi_list = aqi_data.get("hourly", {}).get("european_aqi", [1]*24)
+    h_data = weather_data.get("hourly", {}) # extract hourly section from API
+    temp_list = h_data.get("temperature_2m", [0]*24) # gets hourly temperature values
+    hum_list = h_data.get("relative_humidity_2m", [0]*24) # gets hourly humidity values
+    uv_list = h_data.get("uv_index", [0]*24) # gets hourly UV index values
+    press_list = h_data.get("surface_pressure", [0]*24) # gets hourly pressure values
+    precip_list = h_data.get("precipitation_probability", [0]*24) # gets hourly rain chance values
+    wind_list = h_data.get("wind_speed_10m", [0]*24) # gets hourly wind speed values
+    code_list = h_data.get("weathercode", [0]*24) # gets hourly weather condition code values
+    dewpoint_list = h_data.get("dewpoint_2m", [0]*24) # gets hourly dew point values
+    visibility_list = h_data.get("visibility", [0]*24) # gets hourly visibility values
+    feels_list = h_data.get("apparent_temperature", [0]*24) # gets hourly feels like values
+    aqi_list = aqi_data.get("hourly", {}).get("european_aqi", [1]*24) # gets hourly AQI values
 
     # Ensure index is safe
     idx = min(current_hour, len(temp_list) - 1)
@@ -192,20 +163,65 @@ async def get_current_weather(lat: float, lon: float):
         ]
     }
 
+# ==========================================
+# MOON PHASE
+# ==========================================
+
+def get_moon_phase(year: int, month: int, day: int) -> dict:
+    """Calculate the moon phase for a given date using Conway's algorithm.
+    Returns a dict with phase name, illumination percentage, and icon."""
+    # Normalize to a known new-moon epoch (Jan 6, 2000)
+
+    from datetime import date as _date
+    diff = (_date(year, month, day) - _date(2000, 1, 6)).days
+    lunation = 29.53058867 # every time a fullmoon appears
+    phase_day = diff % lunation
+    phase_pct = phase_day / lunation  # 0.0 to 1.0 through the cycle
+    illumination = round((1 - math.cos(2 * math.pi * phase_pct)) / 2 * 100)
+
+    if phase_pct < 0.0339:    name, icon = "New Moon", "🌑"
+    elif phase_pct < 0.2161:  name, icon = "Waxing Crescent", "🌒"
+    elif phase_pct < 0.2839:  name, icon = "First Quarter", "🌓"
+    elif phase_pct < 0.4661:  name, icon = "Waxing Gibbous", "🌔"
+    elif phase_pct < 0.5339:  name, icon = "Full Moon", "🌕"
+    elif phase_pct < 0.7161:  name, icon = "Waning Gibbous", "🌖"
+    elif phase_pct < 0.7839:  name, icon = "Last Quarter", "🌗"
+    elif phase_pct < 0.9661:  name, icon = "Waning Crescent", "🌘"
+    else:                     name, icon = "New Moon", "🌑"
+
+    return {"name": name, "icon": icon, "illumination": illumination}
+
+# ==========================================
+# CITY SEARCH
+# ==========================================
+@app.get("/search-city")
+async def search_city(name: str):
+    """Return up to 5 geocoding matches so the user can pick the right city."""
+    matches = await search_city_results(name)
+    return {"results": matches}
+
+
+@app.get("/reverse-geocode")
+async def get_geo_name(lat: float, lon: float):
+    """Convert coordinates into a friendly city name."""
+    return await reverse_geocode(lat, lon)
+
 
 # ==========================================
 # COMMUTE PLANNER
 # ==========================================
 @app.get("/plan-trip")
 async def plan_trip(lat: float, lon: float, city_name: str, travel_time: int, travel_day: int = 0):
-    # Fetch external data
-    weather_data = await fetch_weather(lat, lon)
-    aqi_data = await fetch_air_quality(lat, lon)
+    # Fetch external data (using cache)
+    weather_data, aqi_data = await asyncio.gather(
+        get_cached_weather(lat, lon),
+        get_cached_air_quality(lat, lon)
+    )
 
     # Analyze commute
     best, target, opts = find_best_commute(travel_time, travel_day, weather_data, aqi_data)
     
-    # Generate advice messages and skincare tips in a single optimized call
+    # Generate advice messages and skincare tips 
     analysis = await get_full_commute_analysis(
         best=best,
         target=target,
@@ -224,3 +240,4 @@ async def plan_trip(lat: float, lon: float, city_name: str, travel_time: int, tr
         "comparison": opts,
         "skincare": analysis.get("skincare", []),
     }
+

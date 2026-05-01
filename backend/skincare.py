@@ -1,10 +1,8 @@
 # ==========================================
 # SKINCARE MODULE
 # ==========================================
-# Weather-aware skincare recommendations
-# based on UV, humidity, AQI, and temperature.
-# ==========================================
 
+# Weather-aware skincare recommendations based on UV, humidity, AQI, and temperature.
 
 def get_skincare_tips(temp: float, humidity: int, uv: float, aqi: int) -> list[dict]:
     """Return a list of skincare tip dicts for the given weather conditions.

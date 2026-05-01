@@ -16,11 +16,132 @@ def format_hour(h: int) -> str:
     else:
         return f"{h - 12} PM"
 
+# ==========================================
+# 1. API FETCHING
+# ==========================================
+
+import time
+
+# In-memory caches
+_weather_cache = {}
+_aqi_cache = {}
+CACHE_TTL = 600 # 10 minutes
+
+"""Fetch hourly weather forecast from Open-Meteo."""
+async def fetch_weather(lat: float, lon: float) -> dict:
+    async with httpx.AsyncClient() as client:
+        weather_url = (
+            f"https://api.open-meteo.com/v1/forecast?"
+            f"latitude={lat}&longitude={lon}"
+            f"&hourly=temperature_2m,relative_humidity_2m,uv_index,surface_pressure,precipitation_probability,weathercode,wind_speed_10m,dewpoint_2m,visibility,apparent_temperature"
+            f"&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset"
+            f"&forecast_days=2&timezone=auto"
+        )
+        resp = await client.get(weather_url)
+        return resp.json()
+
+"""Fetch hourly AQI from Open-Meteo."""
+async def fetch_air_quality(lat: float, lon: float) -> dict:
+    async with httpx.AsyncClient() as client:
+        aqi_url = (
+            f"https://air-quality-api.open-meteo.com/v1/air-quality?"
+            f"latitude={lat}&longitude={lon}"
+            f"&hourly=european_aqi"
+            f"&forecast_days=2&timezone=auto"
+        )
+        resp = await client.get(aqi_url)
+        return resp.json()
+
+async def get_cached_weather(lat: float, lon: float) -> dict:
+    """Check cache before calling API. Keyed by lat/lon (rounded to 3 decimals)."""
+    key = (round(lat, 3), round(lon, 3))
+    now = time.time()
+    if key in _weather_cache:
+        data, ts = _weather_cache[key]
+        if now - ts < CACHE_TTL:
+            print(f"🏠 [CACHE HIT] Weather for {key}")
+            return data
+    print(f"☁️ [CACHE MISS] Fetching Weather for {key}...")
+    data = await fetch_weather(lat, lon)
+    _weather_cache[key] = (data, now)
+    return data
+
+async def get_cached_air_quality(lat: float, lon: float) -> dict:
+    """Check cache before calling AQI API."""
+    key = (round(lat, 3), round(lon, 3))
+    now = time.time()
+    if key in _aqi_cache:
+        data, ts = _aqi_cache[key]
+        if now - ts < CACHE_TTL:
+            print(f"🌫️ [CACHE HIT] AQI for {key}")
+            return data
+    print(f"🏭 [CACHE MISS] Fetching AQI for {key}...")
+    data = await fetch_air_quality(lat, lon)
+    _aqi_cache[key] = (data, now)
+    return data
+
+"""Return up to 5 geocoding matches for a city name."""
+async def search_city_results(name: str) -> list:
+    async with httpx.AsyncClient() as client:
+        geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={name}&count=5&language=en"
+        geo_resp = await client.get(geo_url)
+        geo_data = geo_resp.json()
+    
+    if "results" not in geo_data:
+        return []
+    
+    matches = []
+    for r in geo_data["results"]:
+        matches.append({
+            "name": r.get("name", name),
+            "country": r.get("country", "Unknown"),
+            "admin1": r.get("admin1", ""),  # State/Province
+            "latitude": r["latitude"],
+            "longitude": r["longitude"],
+        })
+    
+    return matches
+
+"""Reverse Geocode: Convert lat/lon into a city name using OpenStreetMap (Nominatim)."""
+async def reverse_geocode(lat: float, lon: float) -> dict:
+    """Convert lat/lon into a city name using multiple fallback services."""
+    headers = {"User-Agent": "SAFE-Weather-App/1.0"}
+    
+    # SERVICE 1: Nominatim (OpenStreetMap)
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            rev_url = f"https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat={lat}&lon={lon}&zoom=10"
+            resp = await client.get(rev_url, headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                address = data.get("address", {})
+                name = address.get("city") or address.get("town") or address.get("village") or address.get("suburb") or address.get("county")
+                if name:
+                    return {"name": name, "country": address.get("country", "")}
+    except Exception as e:
+        print(f"Nominatim Error: {e}")
+
+    # SERVICE 2: BigDataCloud (Fast Fallback, no key needed for client-side/basic requests)
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            bdc_url = f"https://api.bigdatacloud.net/data/reverse-geocode-client?latitude={lat}&longitude={lon}&localityLanguage=en"
+            resp = await client.get(bdc_url)
+            if resp.status_code == 200:
+                data = resp.json()
+                name = data.get("city") or data.get("locality") or data.get("principalSubdivision")
+                if name:
+                    return {"name": name, "country": data.get("countryName", "")}
+    except Exception as e:
+        print(f"BigDataCloud Error: {e}")
+
+    # Final Fallback
+    return {"name": "Current Location", "country": ""}
 
 # ==========================================
-# 1. THE BRAIN (Risk Scoring Engine)
+# 2. THE BRAIN (Risk Scoring Engine) - 
 # ==========================================
 
+""" ROTHFUSZ HEAT INDEX EQUATION """
 def calculate_heat_index(T: float, RH: int) -> float:
     if T < 27 or RH < 40:
         return T 
@@ -82,7 +203,7 @@ def calculate_risk(temp: float, humidity: int, uv: float, aqi: int):
 
 
 # ==========================================
-# 2. SMART COMMUTE ADVISOR LOGIC
+# 3. SMART COMMUTE ADVISOR LOGIC
 # ==========================================
 
 def find_best_commute(target_time: int, target_day: int, weather_data, aqi_data):
@@ -194,83 +315,6 @@ def generate_commute_advice(best, target, original_hour: int, direction: str) ->
                 f"You're all set! {format_hour(original_hour)} is already the sweet spot — "
                 f"{best['details'].lower()}. Have a good commute!"
             )
-    else:  # inbound
-        if best["hour"] != target["hour"]:
-            if best["level"] == "HIGH":
-                return (
-                    f"⚠️ The heat's relentless — your {format_hour(original_hour)} return means "
-                    f"{target['details'].lower()}. Heading back at "
-                    f"{format_hour(best['hour'])} would be a bit easier "
-                    f"({best['details'].lower()}), but arrange a ride if you can."
-                )
-            else:
-                return (
-                    f"Heading back at {format_hour(original_hour)} won't be ideal — "
-                    f"{target['details'].lower()}. Shifting to "
-                    f"{format_hour(best['hour'])} would make the trip home more comfortable "
-                    f"({best['details'].lower()})."
-                )
-        elif best["level"] == "HIGH":
-            return (
-                f"⚠️ The evening heat is no joke — it's rough across the board "
-                f"({best['details'].lower()}). Stay in a bit longer or arrange a ride if possible."
-            )
-        else:
-            return (
-                f"Good news — {format_hour(original_hour)} is the best window to head back. "
-                f"Expect {best['details'].lower()}. Safe travels!"
-            )
+  
 
 
-# ==========================================
-# 3. API FETCHING
-# ==========================================
-
-async def fetch_weather(lat: float, lon: float) -> dict:
-    """Fetch hourly weather forecast from Open-Meteo."""
-    async with httpx.AsyncClient() as client:
-        weather_url = (
-            f"https://api.open-meteo.com/v1/forecast?"
-            f"latitude={lat}&longitude={lon}"
-            f"&hourly=temperature_2m,relative_humidity_2m,uv_index,surface_pressure,precipitation_probability,weathercode,wind_speed_10m,dewpoint_2m,visibility,apparent_temperature"
-            f"&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset"
-            f"&forecast_days=2&timezone=auto"
-        )
-        resp = await client.get(weather_url)
-        return resp.json()
-
-
-async def fetch_air_quality(lat: float, lon: float) -> dict:
-    """Fetch hourly air quality data from Open-Meteo."""
-    async with httpx.AsyncClient() as client:
-        aqi_url = (
-            f"https://air-quality-api.open-meteo.com/v1/air-quality?"
-            f"latitude={lat}&longitude={lon}"
-            f"&hourly=european_aqi"
-            f"&forecast_days=2&timezone=auto"
-        )
-        resp = await client.get(aqi_url)
-        return resp.json()
-
-
-async def search_city_results(name: str) -> list:
-    """Return up to 5 geocoding matches for a city name."""
-    async with httpx.AsyncClient() as client:
-        geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={name}&count=5&language=en"
-        geo_resp = await client.get(geo_url)
-        geo_data = geo_resp.json()
-    
-    if "results" not in geo_data:
-        return []
-    
-    matches = []
-    for r in geo_data["results"]:
-        matches.append({
-            "name": r.get("name", name),
-            "country": r.get("country", "Unknown"),
-            "admin1": r.get("admin1", ""),  # State/Province
-            "latitude": r["latitude"],
-            "longitude": r["longitude"],
-        })
-    
-    return matches

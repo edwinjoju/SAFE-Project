@@ -58,8 +58,17 @@ async def get_full_commute_analysis(
 ) -> dict:
     """Generate commute advice and skincare tips in a single optimized Gemini API call."""
     
+    # Round weather data in cache key to significantly increase cache hits and save quota
+    weather_rounded = {
+        "temp": round(weather.get("temp", 0), 1),
+        "humidity": round(weather.get("humidity", 0) / 5) * 5, # Group by 5%
+        "uv": round(weather.get("uv", 0), 1),
+        "aqi": round(weather.get("aqi", 0) / 10) * 10, # Group by 10 units
+    }
+    
     cache_key = json.dumps({
-        "b": best, "t": target, "h": hour, "w": weather
+        "b_h": best.get("hour"), "t_h": target.get("hour"), 
+        "h": hour, "w": weather_rounded
     }, sort_keys=True)
 
     if cache_key in _commute_analysis_cache:
@@ -92,15 +101,15 @@ async def get_full_commute_analysis(
 
         try:
             response = await client.aio.models.generate_content(
-                model='gemini-2.5-flash',
+                model='gemini-2.0-flash',
                 contents=prompt,
                 config=config,
             )
         except Exception as inner_e:
             if "503" in str(inner_e) or "UNAVAILABLE" in str(inner_e) or "429" in str(inner_e):
-                print(f"Model busy, falling back to gemini-1.5-flash: {inner_e}")
+                print(f"Model busy, falling back to gemini-flash-latest: {inner_e}")
                 response = await client.aio.models.generate_content(
-                    model='gemini-1.5-flash',
+                    model='gemini-flash-latest',
                     contents=prompt,
                     config=config,
                 )
@@ -121,18 +130,25 @@ async def get_full_commute_analysis(
         }
 
 _current_skincare_cache = {}
+AI_CACHE_TTL = 3600 # 1 hour for AI tips
 
 async def get_ai_skincare_tips(temp: float, humidity: int, uv: float, aqi: int) -> list[dict]:
-    """Fallback for the current weather dashboard (single call)."""
+    """Cache AI tips based on rounded weather conditions."""
     
-    # Round floats to group similar conditions and increase cache hits
-    cache_key = (round(temp), humidity, round(uv), aqi)
+    # Rounding parameters to increase cache hits (e.g. 30.1 and 29.9 both map to 30)
+    cache_key = (round(temp), humidity // 5 * 5, round(uv), aqi // 10 * 10)
+    now = time.time()
+    
     if cache_key in _current_skincare_cache:
-        return _current_skincare_cache[cache_key]
+        tips, ts = _current_skincare_cache[cache_key]
+        if now - ts < AI_CACHE_TTL:
+            print(f"🤖 [AI CACHE HIT] Skincare tips for {cache_key}")
+            return tips
 
     if not client:
         return [{"icon": "🤖", "label": "No AI", "text": "Set GEMINI_API_KEY in backend/.env to use AI skincare."}]
 
+    print(f"🧠 [AI CACHE MISS] Generating new tips for {cache_key}...")
     prompt = (
         f"Temperature: {temp}°C, Humidity: {humidity}%, UV Index: {uv}, European AQI: {aqi}.\n"
         f"Focus on practical advice (e.g., sunscreen, moisturizer type, pollution protection)."
@@ -157,9 +173,9 @@ async def get_ai_skincare_tips(temp: float, humidity: int, uv: float, aqi: int) 
             )
         except Exception as inner_e:
             if "503" in str(inner_e) or "UNAVAILABLE" in str(inner_e) or "429" in str(inner_e):
-                print(f"Model busy, falling back to gemini-1.5-flash for skincare: {inner_e}")
+                print(f"Model busy, falling back to gemini-2.5-flash for skincare: {inner_e}")
                 response = await client.aio.models.generate_content(
-                    model='gemini-1.5-flash',
+                    model='gemini-2.5-flash',
                     contents=prompt,
                     config=config,
                 )
@@ -168,7 +184,7 @@ async def get_ai_skincare_tips(temp: float, humidity: int, uv: float, aqi: int) 
 
         data = json.loads(response.text)
         tips = data.get("tips", [])
-        _current_skincare_cache[cache_key] = tips
+        _current_skincare_cache[cache_key] = (tips, now)
         return tips
     except Exception as e:
         print(f"Gemini API Error in Skincare: {e}")
