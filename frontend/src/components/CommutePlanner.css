@@ -1,0 +1,753 @@
+/* ============================================================
+   CommutePlanner.css — Glassmorphic Premium Design
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ── Page Layout ── */
+.commute-page {
+  width: 100%;
+  min-height: 100vh;
+  padding: 2rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  font-family: 'Inter', sans-serif;
+  color: #fff;
+  box-sizing: border-box;
+}
+
+/* ── Page Header ── */
+.commute-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.commute-page-title {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #fff 40%, rgba(255,255,255,0.5));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.commute-page-subtitle {
+  font-size: 0.95rem;
+  color: rgba(255,255,255,0.5);
+  margin-top: 0.25rem;
+}
+
+/* ── Glass Panel Base ── */
+.cp-glass {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+}
+
+/* ── City Search Card ── */
+.cp-search-card {
+  padding: 1.75rem 2rem;
+}
+
+.cp-search-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 0.75rem;
+}
+
+.cp-search-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.cp-search-input {
+  flex: 1;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 0.85rem 1.25rem;
+  color: #fff;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.cp-search-input::placeholder { color: rgba(255,255,255,0.3); }
+
+.cp-search-input:focus {
+  border-color: rgba(0,198,255,0.6);
+  box-shadow: 0 0 0 3px rgba(0,198,255,0.1);
+}
+
+.cp-btn-primary {
+  background: linear-gradient(135deg, #00c6ff, #0072ff);
+  border: none;
+  border-radius: 12px;
+  padding: 0.85rem 1.75rem;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.cp-btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0,114,255,0.4);
+}
+
+.cp-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.cp-btn-ghost {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  padding: 0.85rem 1.25rem;
+  color: rgba(255,255,255,0.7);
+  font-size: 0.9rem;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.cp-btn-ghost:hover {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+}
+
+/* ── City Disambiguation Results ── */
+.cp-city-results {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.cp-city-option {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 0.9rem 1.1rem;
+  cursor: pointer;
+  text-align: left;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.cp-city-option:hover {
+  background: rgba(0,198,255,0.1);
+  border-color: rgba(0,198,255,0.35);
+  transform: translateY(-2px);
+}
+
+.cp-city-option-name { font-weight: 600; font-size: 1rem; }
+.cp-city-option-sub { font-size: 0.8rem; color: rgba(255,255,255,0.45); }
+
+/* ── Active City Bar ── */
+.cp-city-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.75rem;
+}
+
+.cp-city-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cp-city-pin { font-size: 1.3rem; }
+
+.cp-city-name {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.cp-city-country {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.45);
+  margin-top: 0.1rem;
+}
+
+/* ── Planner Form Card ── */
+.cp-form-card {
+  padding: 1.75rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.cp-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.cp-field-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 0.6rem;
+  display: block;
+}
+
+/* Day Toggle Pills */
+.cp-day-toggle {
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(0,0,0,0.2);
+  padding: 0.3rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.cp-day-btn {
+  flex: 1;
+  padding: 0.7rem;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.cp-day-btn.active {
+  background: linear-gradient(135deg, #00c6ff, #0072ff);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0,198,255,0.3);
+}
+
+/* Time Select */
+.cp-time-select {
+  width: 100%;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 0.85rem 2.5rem 0.85rem 1.25rem;
+  color: #fff;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.1em;
+  transition: border-color 0.2s;
+}
+
+.cp-time-select:focus { border-color: rgba(0,198,255,0.6); }
+.cp-time-select option { background: #1a1a2e; color: #fff; }
+
+/* ── Alert Banners ── */
+.cp-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  backdrop-filter: blur(12px);
+  animation: fadeIn 0.4s ease;
+}
+
+.cp-alert--severe {
+  background: rgba(244, 67, 54, 0.1);
+  border-color: rgba(244, 67, 54, 0.3);
+}
+
+.cp-alert--rain {
+  background: rgba(41, 182, 246, 0.1);
+  border-color: rgba(41, 182, 246, 0.3);
+}
+
+.cp-alert-icon { font-size: 1.5rem; flex-shrink: 0; margin-top: 2px; }
+
+.cp-alert-body { flex: 1; }
+.cp-alert-title { font-weight: 700; font-size: 0.95rem; }
+.cp-alert-desc { font-size: 0.85rem; color: rgba(255,255,255,0.55); margin-top: 0.2rem; }
+
+.cp-severity-badge {
+  align-self: flex-start;
+  background: rgba(244, 67, 54, 0.15);
+  color: #ef5350;
+  border: 1px solid rgba(244,67,54,0.35);
+  border-radius: 6px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Result Card ── */
+.cp-result-card {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.cp-result-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px; height: 100%;
+  background: #4caf50; /* safe green default */
+  border-radius: 4px 0 0 4px;
+}
+
+.cp-result-card.danger::before { background: #f44336; }
+.cp-result-card.caution::before { background: #ff9800; }
+
+.cp-result-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.cp-result-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.cp-result-advice {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: rgba(255,255,255,0.85);
+}
+
+/* ── Timeline Pills ── */
+.cp-timeline {
+  display: flex;
+  gap: 0.85rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+.cp-pill {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  min-width: 130px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: default;
+  transition: transform 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+
+.cp-pill:hover {
+  transform: translateY(-4px);
+  background: rgba(255,255,255,0.1);
+}
+
+.cp-pill-time {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.5);
+}
+
+.cp-pill-temp {
+  font-size: 1.75rem;
+  font-weight: 300;
+  color: #fff;
+}
+
+.cp-pill-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.cp-pill-badge.high   { background: rgba(244,67,54,0.2);  color: #f44336; }
+.cp-pill-badge.medium { background: rgba(255,152,0,0.2);  color: #ff9800; }
+.cp-pill-badge.low    { background: rgba(76,175,80,0.2);  color: #4caf50; }
+
+/* Full Weather Pill Button */
+.cp-pill-btn {
+  background: rgba(41, 182, 246, 0.06);
+  border: 1px solid rgba(41,182,246,0.2);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  min-width: 130px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  color: #29b6f6;
+  font-family: 'Inter', sans-serif;
+  flex-shrink: 0;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.cp-pill-btn:hover {
+  transform: translateY(-4px);
+  background: rgba(41,182,246,0.12);
+  border-color: rgba(41,182,246,0.4);
+}
+
+.cp-pill-btn .cp-pill-btn-icon { font-size: 1.8rem; }
+.cp-pill-btn .cp-pill-btn-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+
+/* ── Rain Sparkline ── */
+.cp-sparkline {
+  background: rgba(41, 182, 246, 0.06);
+  border: 1px solid rgba(41, 182, 246, 0.18);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+}
+
+.cp-sparkline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+.cp-sparkline-title { font-size: 0.8rem; font-weight: 700; color: #29b6f6; text-transform: uppercase; letter-spacing: 0.5px; }
+.cp-sparkline-val   { font-size: 0.8rem; font-weight: 600; color: rgba(255,255,255,0.45); }
+
+.cp-sparkline-svg   { width: 100%; height: 60px; display: block; }
+
+.cp-sparkline-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.35);
+}
+
+/* ── Action Plan ── */
+.cp-action-section {
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.cp-action-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.45);
+}
+
+.cp-action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+@media (max-width: 600px) {
+  .cp-action-grid { grid-template-columns: 1fr; }
+}
+
+.cp-action-item {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.cp-action-item:hover {
+  background: rgba(255,255,255,0.07);
+  transform: translateX(3px);
+}
+
+.cp-action-icon { font-size: 1.3rem; flex-shrink: 0; }
+.cp-action-text { font-size: 0.9rem; color: rgba(255,255,255,0.8); line-height: 1.4; }
+
+/* ── Weather Dialog ── */
+.cp-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease;
+}
+
+.cp-dialog {
+  background: rgba(15, 20, 40, 0.85);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 24px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 480px;
+  position: relative;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+}
+
+.cp-dialog-close {
+  position: absolute;
+  top: 1rem; right: 1.25rem;
+  background: none; border: none;
+  color: rgba(255,255,255,0.4);
+  font-size: 1.75rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.cp-dialog-close:hover { color: #fff; }
+
+.cp-dialog-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.cp-dialog-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+
+.cp-dialog-item {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cp-dialog-item-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.4);
+}
+
+.cp-dialog-item-val {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.cp-dialog-summary {
+  margin-top: 1rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 1rem;
+  font-size: 0.95rem;
+  color: rgba(255,255,255,0.7);
+  line-height: 1.6;
+}
+
+/* ── Error ── */
+.cp-error {
+  padding: 1.25rem 1.75rem;
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.25);
+  border-radius: 16px;
+  color: #ff8a80;
+  font-size: 0.95rem;
+}
+
+/* ============================================================
+   LIGHT MODE OVERRIDES
+   ============================================================ */
+[data-theme='light'] .commute-page { color: var(--text-main); }
+
+[data-theme='light'] .commute-page-title {
+  background: linear-gradient(135deg, #1a1a1a 40%, rgba(0,0,0,0.5));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+[data-theme='light'] .commute-page-subtitle { color: var(--text-dim); }
+
+/* Glass panels */
+[data-theme='light'] .cp-glass {
+  background: rgba(255, 255, 255, 0.65);
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+}
+
+/* Labels & muted text */
+[data-theme='light'] .cp-search-label,
+[data-theme='light'] .cp-field-label,
+[data-theme='light'] .cp-action-title,
+[data-theme='light'] .cp-sparkline-val,
+[data-theme='light'] .cp-pill-time,
+[data-theme='light'] .cp-city-country,
+[data-theme='light'] .cp-city-option-sub { color: var(--text-dim); }
+
+/* Text inputs */
+[data-theme='light'] .cp-search-input,
+[data-theme='light'] .cp-time-select {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: var(--text-main);
+}
+[data-theme='light'] .cp-search-input::placeholder { color: rgba(0,0,0,0.35); }
+[data-theme='light'] .cp-time-select option { background: #fff; color: #1a1a1a; }
+
+/* Ghost buttons */
+[data-theme='light'] .cp-btn-ghost {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: var(--text-muted);
+}
+[data-theme='light'] .cp-btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-main);
+}
+
+/* Day toggle */
+[data-theme='light'] .cp-day-toggle {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+[data-theme='light'] .cp-day-btn { color: var(--text-dim); }
+[data-theme='light'] .cp-day-btn.active { color: #fff; }
+
+/* City bar */
+[data-theme='light'] .cp-city-name { color: var(--text-main); }
+
+/* City options */
+[data-theme='light'] .cp-city-option {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: var(--text-main);
+}
+[data-theme='light'] .cp-city-option:hover {
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.3);
+}
+
+/* Result card */
+[data-theme='light'] .cp-result-title { color: var(--text-main); }
+[data-theme='light'] .cp-result-advice { color: var(--text-muted); }
+
+/* Timeline pills */
+[data-theme='light'] .cp-pill {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+[data-theme='light'] .cp-pill:hover { background: rgba(0, 0, 0, 0.06); }
+[data-theme='light'] .cp-pill-temp { color: var(--text-main); }
+
+/* Action items */
+[data-theme='light'] .cp-action-item {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+[data-theme='light'] .cp-action-item:hover { background: rgba(0, 0, 0, 0.06); }
+[data-theme='light'] .cp-action-text { color: var(--text-muted); }
+[data-theme='light'] .cp-action-section { border-top-color: rgba(0, 0, 0, 0.08); }
+
+/* Weather dialog */
+[data-theme='light'] .cp-dialog {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.15);
+}
+[data-theme='light'] .cp-dialog-close { color: rgba(0, 0, 0, 0.3); }
+[data-theme='light'] .cp-dialog-close:hover { color: var(--text-main); }
+[data-theme='light'] .cp-dialog-title { color: var(--text-main); }
+[data-theme='light'] .cp-dialog-item {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+[data-theme='light'] .cp-dialog-item-label { color: var(--text-dim); }
+[data-theme='light'] .cp-dialog-item-val { color: var(--text-main); }
+[data-theme='light'] .cp-dialog-summary {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.06);
+  color: var(--text-muted);
+}
+
+/* Error */
+[data-theme='light'] .cp-error { color: #c62828; }
+
+/* Sparkline */
+[data-theme='light'] .cp-sparkline {
+  background: rgba(41, 182, 246, 0.06);
+  border-color: rgba(41, 182, 246, 0.15);
+}
+[data-theme='light'] .cp-sparkline-labels { color: var(--text-dim); }
+
+/* Pill button */
+[data-theme='light'] .cp-pill-btn {
+  background: rgba(41, 182, 246, 0.06);
+  border-color: rgba(41, 182, 246, 0.2);
+  color: #0277bd;
+}
+[data-theme='light'] .cp-pill-btn:hover {
+  background: rgba(41, 182, 246, 0.12);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .commute-page { padding: 1.5rem 1rem; }
+  .cp-form-row { grid-template-columns: 1fr; }
+  .cp-search-row { flex-direction: column; }
+  .cp-btn-primary { width: 100%; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

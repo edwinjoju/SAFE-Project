@@ -1,4 +1,9 @@
 import httpx
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+TOMORROW_API_KEY = os.getenv("TOMORROW_API_KEY", "")
 
 
 # ==========================================
@@ -25,6 +30,7 @@ import time
 # In-memory caches
 _weather_cache = {}
 _aqi_cache = {}
+_tomorrow_cache = {}
 CACHE_TTL = 600 # 10 minutes
 
 """Fetch hourly weather forecast from Open-Meteo."""
@@ -33,6 +39,7 @@ async def fetch_weather(lat: float, lon: float) -> dict:
         weather_url = (
             f"https://api.open-meteo.com/v1/forecast?"
             f"latitude={lat}&longitude={lon}"
+            f"&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,surface_pressure"
             f"&hourly=temperature_2m,relative_humidity_2m,uv_index,surface_pressure,precipitation_probability,weathercode,wind_speed_10m,dewpoint_2m,visibility,apparent_temperature"
             f"&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset"
             f"&forecast_days=2&timezone=auto"
@@ -79,6 +86,140 @@ async def get_cached_air_quality(lat: float, lon: float) -> dict:
     data = await fetch_air_quality(lat, lon)
     _aqi_cache[key] = (data, now)
     return data
+
+
+# ==========================================
+# TOMORROW.IO — NOWCAST & ALERTS
+# ==========================================
+
+async def fetch_tomorrow_nowcast(lat: float, lon: float) -> dict:
+    """Fetch minute-by-minute precipitation nowcast for the next 60 min from Tomorrow.io.
+    Returns a list of {minuteOffset, rainIntensity (mm/hr), precipitationProbability} dicts,
+    plus a top-level 'is_raining_now' boolean and 'current_intensity' float.
+    Falls back gracefully if the key is missing or the API errors.
+    """
+    if not TOMORROW_API_KEY or TOMORROW_API_KEY == "your_tomorrow_io_key_here":
+        return {"available": False, "is_raining_now": False, "current_intensity": 0.0, "timeline": []}
+
+    url = "https://api.tomorrow.io/v4/timelines"
+    params = {
+        "location": f"{lat},{lon}",
+        "fields": ["precipitationIntensity", "precipitationProbability", "rainAccumulation"],
+        "timesteps": ["1m"],
+        "startTime": "now",
+        "endTime": "nowPlus60m",
+        "units": "metric",
+        "apikey": TOMORROW_API_KEY,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(url, params=params)
+            resp.raise_for_status()
+            raw = resp.json()
+
+        intervals = (raw.get("data", {}).get("timelines", [{}])[0].get("intervals", []))
+
+        timeline = []
+        for i, interval in enumerate(intervals):
+            v = interval.get("values", {})
+            timeline.append({
+                "minuteOffset": i,
+                "rainIntensity": v.get("precipitationIntensity", 0.0),
+                "precipProb": v.get("precipitationProbability", 0),
+            })
+
+        current = timeline[0] if timeline else {"rainIntensity": 0.0, "precipProb": 0}
+        is_raining = current["rainIntensity"] > 0.1 or current["precipProb"] > 40
+
+        # Peak intensity in the next 30 minutes (most relevant for commute decision)
+        peak_30 = max((t["rainIntensity"] for t in timeline[:30]), default=0.0)
+
+        print(f"🌧️ [TOMORROW] Nowcast OK — raining={is_raining}, intensity={current['rainIntensity']} mm/hr, peak_30min={peak_30}")
+        return {
+            "available": True,
+            "is_raining_now": is_raining,
+            "current_intensity": current["rainIntensity"],
+            "current_precip_prob": current["precipProb"],
+            "peak_intensity_30min": peak_30,
+            "timeline": timeline[:60],  # Keep max 60 data points
+        }
+
+    except Exception as e:
+        print(f"⚠️ [TOMORROW] Nowcast fetch failed: {e}")
+        return {"available": False, "is_raining_now": False, "current_intensity": 0.0, "timeline": []}
+
+
+async def fetch_tomorrow_alerts(lat: float, lon: float) -> list:
+    """Fetch active severe weather alerts from Tomorrow.io.
+    Returns a list of alert dicts with title, severity, description.
+    Falls back to [] gracefully.
+    """
+    if not TOMORROW_API_KEY or TOMORROW_API_KEY == "your_tomorrow_io_key_here":
+        return []
+
+    url = "https://api.tomorrow.io/v4/events"
+    params = {
+        "location": f"{lat},{lon}",
+        "insights": "air,fires,wind,floods",
+        "buffer": 20,  # km radius
+        "apikey": TOMORROW_API_KEY,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(url, params=params)
+            resp.raise_for_status()
+            raw = resp.json()
+
+        alerts = []
+        for event in raw.get("data", {}).get("events", []):
+            props = event.get("properties", {})
+            alerts.append({
+                "title": props.get("eventName", "Weather Alert"),
+                "severity": props.get("severity", "Unknown"),
+                "description": props.get("description", ""),
+                "startTime": props.get("startTime", ""),
+                "endTime": props.get("endTime", ""),
+            })
+
+        print(f"🚨 [TOMORROW] Alerts fetched — {len(alerts)} active alert(s)")
+        return alerts
+
+    except Exception as e:
+        print(f"⚠️ [TOMORROW] Alerts fetch failed: {e}")
+        return []
+
+
+async def get_cached_tomorrow_nowcast(lat: float, lon: float) -> dict:
+    """Cache wrapper for Tomorrow.io nowcast (10-min TTL)."""
+    key = ("nowcast", round(lat, 3), round(lon, 3))
+    now = time.time()
+    if key in _tomorrow_cache:
+        data, ts = _tomorrow_cache[key]
+        if now - ts < CACHE_TTL:
+            print(f"🌧️ [CACHE HIT] Tomorrow nowcast for {key[1:]}")
+            return data
+    print(f"🌧️ [CACHE MISS] Fetching Tomorrow nowcast for {key[1:]}...")
+    data = await fetch_tomorrow_nowcast(lat, lon)
+    _tomorrow_cache[key] = (data, now)
+    return data
+
+
+async def get_cached_tomorrow_alerts(lat: float, lon: float) -> list:
+    """Cache wrapper for Tomorrow.io alerts (10-min TTL)."""
+    key = ("alerts", round(lat, 3), round(lon, 3))
+    now = time.time()
+    if key in _tomorrow_cache:
+        data, ts = _tomorrow_cache[key]
+        if now - ts < CACHE_TTL:
+            print(f"🚨 [CACHE HIT] Tomorrow alerts for {key[1:]}")
+            return data
+    print(f"🚨 [CACHE MISS] Fetching Tomorrow alerts for {key[1:]}...")
+    data = await fetch_tomorrow_alerts(lat, lon)
+    _tomorrow_cache[key] = (data, now)
+    return data
+
 
 """Return up to 5 geocoding matches for a city name."""
 async def search_city_results(name: str) -> list:
@@ -206,7 +347,17 @@ def calculate_risk(temp: float, humidity: int, uv: float, aqi: int):
 # 3. SMART COMMUTE ADVISOR LOGIC
 # ==========================================
 
-def find_best_commute(target_time: int, target_day: int, weather_data, aqi_data):
+def find_best_commute(target_time: int, target_day: int, weather_data, aqi_data, nowcast: dict = None):
+    """Find the best commute window within ±1 hour of the requested time.
+
+    Args:
+        target_time:  Hour (0-23) the user wants to travel.
+        target_day:   0 = today, 1 = tomorrow.
+        weather_data: Open-Meteo forecast payload.
+        aqi_data:     Open-Meteo AQI payload.
+        nowcast:      Optional Tomorrow.io nowcast dict (only meaningful for today).
+                      Keys: is_raining_now, current_intensity, peak_intensity_30min.
+    """
     # Check 1 hour before, the exact hour, and 1 hour after
     offset = target_day * 24
     check_hours = [
@@ -230,29 +381,68 @@ def find_best_commute(target_time: int, target_day: int, weather_data, aqi_data)
             
         result = calculate_risk(temp, humidity, uv, aqi)
         
-        # Scoring system: LOW=0, MEDIUM=1, HIGH=2. 
-        # Temp is added as a decimal tie-breaker (cooler is better)
+        # Derive the base severity bucket
         severity = 0
         if result["level"] == "MEDIUM": severity = 1
         elif result["level"] == "HIGH": severity = 2
-        
-        score = severity + (temp / 100.0)
-        
+
         wind = weather_data.get("hourly", {}).get("wind_speed_10m", [0]*48)[idx]
         precip = weather_data.get("hourly", {}).get("precipitation_probability", [0]*48)[idx]
+
+        # ── Multi-Factor Weighted Risk Score ───────────────────────────────
+        # Every factor contributes a normalised 0-N penalty.
+        # Lower score = safer / more comfortable hour to travel.
+        #
+        # Factor                    Weight   Rationale
+        # ─────────────────────────────────────────────────────────────────
+        # Severity bucket           ×100     Hard gate: LOW/MED/HIGH dominates
+        # Feels-like temp            ×0.10   Each extra °C of heat costs 0.10
+        # UV index                   ×0.50   UV 8 → +4.0, UV 5 → +2.5
+        # AQI                        ×0.05   AQI 100 → +5.0, AQI 60 → +3.0
+        # Rain probability (OM)      ×0.04   50% rain → +2.0
+        # High wind (>40 km/h)       ×0.10   Wind 60 → +2.0 extra penalty
+        # Tomorrow.io rain intensity ×2.00   0.5mm/hr → +1.0, 5mm/hr → +10.0
+        # ─────────────────────────────────────────────────────────────────
+
+        feels_like = calculate_heat_index(temp, humidity)
+        heat_penalty = max(0.0, feels_like - 20.0) * 0.10
+        uv_penalty   = uv * 0.50
+        aqi_penalty  = aqi * 0.05
+        rain_penalty = (precip or 0) * 0.04
+        wind_penalty = max(0.0, (wind or 0) - 40.0) * 0.10
+
+        # Tomorrow.io nowcast penalty — applied to the target hour only (real-time data)
+        nowcast_intensity = 0.0
+        is_raining_now = False
+        if nowcast and nowcast.get("available") and target_day == 0 and i == target_time:
+            nowcast_intensity = nowcast.get("peak_intensity_30min", 0.0)
+            is_raining_now = nowcast.get("is_raining_now", False)
+
+        nowcast_penalty = nowcast_intensity * 2.0
+
+        score = (severity * 100.0
+                 + heat_penalty
+                 + uv_penalty
+                 + aqi_penalty
+                 + rain_penalty
+                 + wind_penalty
+                 + nowcast_penalty)
 
         options.append({
             "hour": i,
             "level": result["level"],
             "details": ", ".join(result["details"]),
-            "score": score,
+            "score": round(score, 3),
             "severity": severity,
             "temp": temp,
             "humidity": humidity,
             "uv": uv,
             "aqi": aqi,
             "wind": wind,
-            "precip_prob": precip
+            "precip_prob": precip,
+            # Tomorrow.io enrichment (only populated for the target hour on today)
+            "rain_intensity_now": round(nowcast_intensity, 2),
+            "is_raining_now": is_raining_now,
         })
         
     # Find the data for the exact hour they originally wanted
@@ -263,11 +453,13 @@ def find_best_commute(target_time: int, target_day: int, weather_data, aqi_data)
     absolute_best = options[0]
     
     # Is it worth changing their schedule?
-    # Only suggest a change if the Risk Level drops OR it's at least 3 degrees cooler
+    # Suggest a shift if:
+    #   a) The risk level bucket drops (HIGH→MED, MED→LOW), OR
+    #   b) The multi-factor score is meaningfully better (>5 pts difference)
     is_worth_changing = False
     if absolute_best["severity"] < target_option["severity"]:
         is_worth_changing = True
-    elif (target_option["temp"] - absolute_best["temp"]) >= 3.0:
+    elif (target_option["score"] - absolute_best["score"]) >= 5.0:
         is_worth_changing = True
         
     if is_worth_changing:

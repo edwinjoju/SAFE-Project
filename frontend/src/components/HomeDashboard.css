@@ -1,0 +1,377 @@
+/* ============================================================
+   HomeDashboard.css — Glassmorphism Layout
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+
+.home-dashboard-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  font-family: 'Outfit', sans-serif;
+  color: #fff;
+  z-index: 1; /* Ensure it stays above the global App background */
+}
+
+/* ── Dynamic Background ── */
+.dynamic-weather-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-size: cover;
+  background-position: center;
+  z-index: -2; /* Keeps it behind the main content but potentially above global App bg */
+  transition: background-image 1s ease-in-out;
+}
+
+.bg-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(to right, rgba(15, 23, 42, 0.8) 0%, rgba(15, 23, 42, 0.3) 100%);
+  z-index: -1;
+}
+
+/* ── Main Grid Layout ── */
+.home-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 3rem;
+  min-height: 80vh;
+  align-items: start;
+}
+
+/* ── Glass Panel Utility ── */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* ── LEFT COLUMN ── */
+.home-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  height: 100%;
+}
+
+.home-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.welcome-text {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.2;
+}
+.welcome-text strong {
+  font-size: 1.4rem;
+  color: #fff;
+}
+
+.hero-search-wrapper {
+  position: relative;
+}
+
+.hero-search-input-group {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 1.2rem;
+  border-radius: 30px;
+  width: 250px;
+  transition: width 0.3s ease;
+}
+.hero-search-input-group:focus-within {
+  width: 320px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.hero-search-icon {
+  font-size: 1.1rem;
+  opacity: 0.7;
+}
+
+.hero-search-input {
+  background: transparent;
+  border: none;
+  color: white;
+  outline: none;
+  font-family: 'Outfit', sans-serif;
+  margin-left: 0.8rem;
+  width: 100%;
+}
+.hero-search-input::placeholder { color: rgba(255, 255, 255, 0.6); }
+
+.hero-search-results-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 100%;
+  padding: 0.5rem;
+  z-index: 100;
+}
+
+.hero-search-result-item {
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: background 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.hero-search-result-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.hero-search-result-name { font-weight: 600; font-size: 1.05rem; }
+.hero-search-result-country { font-size: 0.8rem; color: rgba(255,255,255,0.6); }
+
+.hero-condition-container {
+  margin-top: 5rem;
+  margin-bottom: 2rem;
+}
+
+.massive-condition {
+  font-size: 5.5rem;
+  font-weight: 800;
+  line-height: 1.05;
+  margin: 0;
+  text-transform: capitalize;
+  text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  letter-spacing: -1px;
+}
+
+.condition-subtext {
+  font-size: 1.3rem;
+  color: rgba(255, 255, 255, 0.8);
+  max-width: 600px;
+  margin-top: 1.5rem;
+  line-height: 1.5;
+  font-weight: 300;
+}
+
+.forecast-curve-container {
+  margin-top: auto;
+  padding: 2rem;
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.5);
+}
+
+/* ── RIGHT COLUMN ── */
+.home-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.primary-city-card {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: rgba(0, 0, 0, 0.2); /* Slightly darker for contrast */
+}
+
+.city-header {
+  font-size: 1.2rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255,255,255,0.9);
+}
+
+.city-temp {
+  font-size: 6rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.city-mini-stats {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 1.2rem;
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 600;
+}
+
+.metrics-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.metric-box {
+  padding: 1.2rem 1.8rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 18px;
+  transition: transform 0.2s, background 0.2s;
+  cursor: default;
+}
+.metric-box:hover {
+  transform: translateX(-5px);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.metric-label {
+  font-size: 1.05rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+/* ── Animations ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .home-grid { 
+    grid-template-columns: 1fr; 
+    gap: 2rem;
+  }
+  .massive-condition { font-size: 4rem; }
+  .home-top-bar { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .hero-search-wrapper { width: 100%; }
+  .hero-search-input-group { width: 100%; }
+}
+
+/* ── SVG Forecast Curve ── */
+.forecast-curve-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.curve-svg {
+  width: 100%;
+  height: auto;
+  max-height: 250px;
+  overflow: visible;
+}
+
+.current-point {
+  filter: drop-shadow(0 0 8px rgba(255,255,255,0.8));
+}
+
+.pulse-ring {
+  transform-origin: center;
+  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* ── Top Right Actions ── */
+.top-right-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.action-btn {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+  padding: 0;
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.profile-avatar-container {
+  position: relative;
+  width: 45px;
+  height: 45px;
+  cursor: pointer;
+}
+
+.profile-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s, filter 0.2s;
+}
+
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.profile-avatar-container:hover .profile-avatar {
+  filter: brightness(0.7);
+  transform: scale(1.05);
+}
+
+.profile-avatar-container:hover .avatar-overlay {
+  opacity: 1;
+}
+
+/* Adjust search bar width in the action row */
+.top-right-actions .hero-search-wrapper {
+  flex: 1;
+  max-width: 250px;
+}
+
+.top-right-actions .hero-search-input-group {
+  width: 100%;
+  height: 45px;
+  padding: 0 1rem;
+}
+
